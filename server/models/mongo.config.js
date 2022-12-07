@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
+require('dotenv').config();
 
-const mongodbUrl = ''; // TODO: PUT YOUR VALID MONGODB CONNECTION URL HERE <-
-
+const mongodbUrl = `mongodb+srv://Mowafy:${process.env.MONGO_ATLAS_PW}@cluster0.xqpp1.mongodb.net/Practicing`;
 if (!mongodbUrl) {
-  console.log('\x1b[33m%s\x1b[0m','Please set the mongodb connection first in -> "server/models/mongo.config.js"\n');
+  console.log(
+    '\x1b[33m%s\x1b[0m',
+    'Please set the mongodb connection first in -> "server/models/mongo.config.js"\n'
+  );
   return;
 }
 
