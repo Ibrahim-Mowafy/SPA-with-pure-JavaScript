@@ -9,7 +9,7 @@ function renderSingleVidReq(vidInfo, appended = false) {
     <div class="card-body d-flex justify-content-between flex-row">
       <div class="d-flex flex-column">
         <h3>${vidInfo.topic_title}</h3>
-        <p class="text-muted mb-2">dummy topic details</p>
+        <p class="text-muted mb-2">${vidInfo.topic_details}</p>
         <p class="mb-0 text-muted">
         ${
           vidInfo.expected_result &&
@@ -87,6 +87,43 @@ function loadAllVidReq(sortBy = 'newFirst', searchTerm = '') {
     });
 }
 
+function checkValidity(formData) {
+  const name = formData.get('author_name');
+  const email = formData.get('author_email');
+  const topic = formData.get('topic_title');
+  const topicDetails = formData.get('topic_details');
+
+  if (!name) {
+    document.querySelector('[name=author_name]').classList.add('is-invalid');
+  }
+  const emailPattern =
+    /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/;
+
+  if (!email || !emailPattern.test(email)) {
+    document.querySelector('[name=author_email]').classList.add('is-invalid');
+  }
+  if (!topic || topic.length > 30) {
+    document.querySelector('[name=topic_title]').classList.add('is-invalid');
+  }
+  if (!topicDetails) {
+    document.querySelector('[name=topic_details]').classList.add('is-invalid');
+  }
+
+  const allInvalidElms = document
+    .getElementById('formVideoRequest')
+    .querySelectorAll('.is-invalid');
+
+  if (allInvalidElms.length) {
+    allInvalidElms.forEach((elm) => {
+      elm.addEventListener('input', function () {
+        this.classList.remove('is-invalid');
+      });
+    });
+    return false;
+  }
+  return true;
+}
+
 function debounce(fn, time) {
   let timeout;
   return function (...args) {
@@ -129,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
   fromVidReqElm.addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(fromVidReqElm);
+
+    const isValid = checkValidity(formData);
+    if (!isValid) return;
 
     fetch('http://localhost:7777/video-request', {
       method: 'POST',
