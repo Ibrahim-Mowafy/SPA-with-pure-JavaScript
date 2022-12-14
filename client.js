@@ -1,15 +1,44 @@
 const listOfVidReqElm = document.getElementById('listOfRequests');
+const SUPER_USER_ID = '2000804';
 
 const state = {
   sortBy: 'newFirst',
   searchTerm: '',
   userId: '',
+  isSuperUser: false,
 };
 
 function renderSingleVidReq(vidInfo, appended = false) {
   const vidReqContainerElm = document.createElement('div');
   vidReqContainerElm.innerHTML = `
     <div class="card mb-3">
+    ${
+      state.isSuperUser
+        ? ` <div class="card-header d-flex justify-content-between">
+      <select id="admin_change_status_${vidInfo._id}">
+        <option value="new">new</option>
+        <option value="planned">planned</option>
+        <option value="done">done</option>
+      </select>
+    <div class="input-group ml-2 mr-5 ${
+      vidInfo.status !== 'done' ? 'd-none' : ''
+    }" id="admin_video_res_container_${vidInfo._id}">
+      <input type="text" class="form-control"
+        id="admin_video_res_${vidInfo._id}" 
+        placeholder="paste here youtube video id">
+      <div class="input-group-append">
+        <button class="btn btn-outline-secondary" 
+          id="admin_save_video_res_${vidInfo._id}"
+          type="button">Save</button>
+      </div>
+     </div>
+        <button id="admin_delete_video_req_${
+          vidInfo._id
+        }" class='btn btn-danger'>delete</button>
+      </div>`
+        : ''
+    }
+  
     <div class="card-body d-flex justify-content-between flex-row">
       <div class="d-flex flex-column">
         <h3>${vidInfo.topic_title}</h3>
@@ -49,6 +78,65 @@ function renderSingleVidReq(vidInfo, appended = false) {
   } else {
     listOfVidReqElm.appendChild(vidReqContainerElm);
   }
+
+  const adminChangeStatusElm = document.getElementById(
+    `admin_change_status_${vidInfo._id}`
+  );
+  const adminVideoResContainerElm = document.getElementById(
+    `admin_video_res_container_${vidInfo._id}`
+  );
+  const adminVideoResElm = document.getElementById(
+    `admin_video_res_${vidInfo._id}`
+  );
+  const adminSaveVideoResElm = document.getElementById(
+    `admin_save_video_res_${vidInfo._id}`
+  );
+  const adminDeleteVideoReqElm = document.getElementById(
+    `admin_delete_video_req_${vidInfo._id}`
+  );
+
+  if (state.isSuperUser) {
+    adminChangeStatusElm.value = vidInfo.status;
+    adminVideoResElm.value = vidInfo.video_ref.link;
+
+    adminChangeStatusElm.addEventListener('change', (e) => {
+      if (e.target.value === 'done') {
+        adminVideoResContainerElm.classList.remove('d-none');
+      } else {
+        updateVideoStatus(vidInfo._id, e.target.value);
+      }
+    });
+
+    adminSaveVideoResElm.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!adminVideoResElm.value) {
+        adminVideoResElm.classList.add('is-invalid');
+        adminVideoResElm.addEventListener('input', () => {
+          adminVideoResElm.classList.remove('is-invalid');
+        });
+        return;
+      }
+
+      updateVideoStatus(vidInfo._id, 'done', adminVideoResElm.value);
+    });
+    adminDeleteVideoReqElm.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      const isSure = confirm(
+        `Are you sure you want to delete "${vidInfo.topic_title}"`
+      );
+
+      if (!isSure) return;
+
+      fetch('http://localhost:7777/video-request', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: vidInfo._id }),
+      })
+        .then((res) => res.json())
+        .then((data) => window.location.reload());
+    });
+  }
   applyVoteStyle(vidInfo._id, vidInfo.votes);
 
   const scoreVoteElm = document.getElementById(`score_vote_${vidInfo._id}`);
@@ -57,6 +145,8 @@ function renderSingleVidReq(vidInfo, appended = false) {
   );
 
   votesElms.forEach((elm) => {
+    if (state.isSuperUser) return;
+
     elm.addEventListener('click', function (e) {
       e.preventDefault();
       const [, vote_type, id] = e.target.getAttribute('id').split('_');
@@ -74,7 +164,27 @@ function renderSingleVidReq(vidInfo, appended = false) {
   });
 }
 
+function updateVideoStatus(id, status, resVideo = '') {
+  fetch('http://localhost:7777/video-request', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, status, resVideo }),
+  })
+    .then((res) => res.json())
+    .then((data) => window.location.reload());
+}
+
 function applyVoteStyle(video_id, votes_list, vote_type) {
+  const voteUpsElm = document.getElementById(`votes_ups_${video_id}`);
+  const voteDownElm = document.getElementById(`votes_downs_${video_id}`);
+
+  if (state.isSuperUser) {
+    voteUpsElm.style.opacity = 0.5;
+    voteUpsElm.style.cursor = 'not-allowed';
+    voteDownElm.style.opacity = 0.5;
+    voteDownElm.style.cursor = 'not-allowed';
+    return;
+  }
   if (!vote_type) {
     if (votes_list.ups.includes(state.userId)) {
       vote_type = 'ups';
@@ -84,9 +194,6 @@ function applyVoteStyle(video_id, votes_list, vote_type) {
       return;
     }
   }
-
-  const voteUpsElm = document.getElementById(`votes_ups_${video_id}`);
-  const voteDownElm = document.getElementById(`votes_downs_${video_id}`);
 
   const voteDirElm = vote_type === 'ups' ? voteUpsElm : voteDownElm;
   const otherDirElm = vote_type === 'ups' ? voteDownElm : voteUpsElm;
@@ -156,6 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (window.location.search) {
     state.userId = new URLSearchParams(window.location.search).get('id');
+    if (state.userId === SUPER_USER_ID) {
+      state.isSuperUser = true;
+      document.querySelector('.normal-user-content').classList.add('d-none');
+    }
+
     formLoginElm.classList.add('d-none');
     appContentElm.classList.remove('d-none');
   }
