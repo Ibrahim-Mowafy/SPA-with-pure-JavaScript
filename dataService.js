@@ -1,15 +1,18 @@
 import { renderSingleVidReq } from './renderSingleVidReq.js';
 import { state } from './client.js';
+import api from './api.js';
+import { applyVoteStyle } from './applyVoteStyle.js';
 
 export default {
+  addVidReq: (formData) => {
+    return api.videoReq.post(formData);
+  },
   updateVideoStatus: (id, status, resVideo = '') => {
-    fetch('http://localhost:7777/video-request', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status, resVideo }),
-    })
-      .then((res) => res.json())
-      .then((data) => window.location.reload());
+    return api.videoReq.update(id, status, (resVideo = ''));
+  },
+
+  deleteVideo: (id) => {
+    return api.videoReq.delete(id);
   },
 
   loadAllVidReq: (
@@ -18,16 +21,20 @@ export default {
     filterBy = 'all',
     localState = state
   ) => {
-    const listOfVidReqElm = document.getElementById('listOfRequests');
-    fetch(
-      `http://localhost:7777/video-request?sortBy=${sortBy}&searchTerm=${searchTerm}&filterBy=${filterBy}`
-    )
-      .then((blob) => blob.json())
-      .then((data) => {
-        listOfVidReqElm.innerHTML = '';
-        data.forEach((vidInfo) => {
-          renderSingleVidReq(vidInfo, localState);
-        });
+    const listOfVidsElm = document.getElementById('listOfRequests');
+    api.videoReq.get(sortBy, searchTerm, filterBy).then((data) => {
+      listOfVidsElm.innerHTML = '';
+      data.forEach((vidInfo) => {
+        renderSingleVidReq(vidInfo, localState);
       });
+    });
+  },
+
+  updateVotes: (id, vote_type, user_id, isDone, state) => {
+    const scoreVoteElm = document.getElementById(`score_vote_${id}`);
+    return api.votes.update(id, vote_type, user_id).then((data) => {
+      scoreVoteElm.innerText = data.ups.length - data.downs.length;
+      applyVoteStyle(id, data, isDone, state, vote_type);
+    });
   },
 };

@@ -1,7 +1,7 @@
 import { debounce } from './debounce.js';
 import { renderSingleVidReq } from './renderSingleVidReq.js';
 import { checkValidity } from './checkValidity.js';
-import API from './dataService.js';
+import dataService from './dataService.js';
 
 const SUPER_USER_ID = '2000804';
 
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appContentElm.classList.remove('d-none');
   }
 
-  API.loadAllVidReq();
+  dataService.loadAllVidReq();
 
   filterByElms.forEach((elm) => {
     elm.addEventListener('click', function (e) {
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.classList.add('active');
 
       state.filterBy = e.target.getAttribute('id').split('_')[2];
-      API.loadAllVidReq(state.sortBy, state.searchTerm, state.filterBy);
+      dataService.loadAllVidReq(state.sortBy, state.searchTerm, state.filterBy);
     });
   });
 
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elm.addEventListener('click', function (e) {
       e.preventDefault();
       state.sortBy = this.querySelector('input').value;
-      API.loadAllVidReq(state.sortBy, state.searchTerm, state.filterBy);
+      dataService.loadAllVidReq(state.sortBy, state.searchTerm, state.filterBy);
 
       this.classList.add('active');
 
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'input',
     debounce((e) => {
       state.searchTerm = e.target.value;
-      API.loadAllVidReq(state.sortBy, state.searchTerm, state.filterBy);
+      dataService.loadAllVidReq(state.sortBy, state.searchTerm, state.filterBy);
     }, 300)
   );
 
@@ -77,11 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const isValid = checkValidity(formData);
     if (!isValid) return;
 
-    fetch('http://localhost:7777/video-request', {
-      method: 'POST',
-      body: formData,
-    })
-      .then((blob) => blob.json())
+    dataService
+      .addVidReq(formData)
       .then((data) => renderSingleVidReq(data, state, true));
   });
 });

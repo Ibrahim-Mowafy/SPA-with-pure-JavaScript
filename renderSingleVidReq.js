@@ -1,5 +1,5 @@
 import { applyVoteStyle } from './applyVoteStyle.js';
-import API from './dataService.js';
+import dataService from './dataService.js';
 const listOfVidReqElm = document.getElementById('listOfRequests');
 
 export function renderSingleVidReq(vidInfo, state, appended = false) {
@@ -116,7 +116,7 @@ export function renderSingleVidReq(vidInfo, state, appended = false) {
       if (e.target.value === 'done') {
         adminVideoResContainerElm.classList.remove('d-none');
       } else {
-        API.updateVideoStatus(vidInfo._id, e.target.value);
+        dataService.updateVideoStatus(vidInfo._id, e.target.value);
       }
     });
 
@@ -130,7 +130,11 @@ export function renderSingleVidReq(vidInfo, state, appended = false) {
         return;
       }
 
-      API.updateVideoStatus(vidInfo._id, 'done', adminVideoResElm.value);
+      dataService.updateVideoStatus(
+        vidInfo._id,
+        'done',
+        adminVideoResElm.value
+      );
     });
     adminDeleteVideoReqElm.addEventListener('click', (e) => {
       e.preventDefault();
@@ -141,13 +145,7 @@ export function renderSingleVidReq(vidInfo, state, appended = false) {
 
       if (!isSure) return;
 
-      fetch('http://localhost:7777/video-request', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: vidInfo._id }),
-      })
-        .then((res) => res.json())
-        .then((data) => window.location.reload());
+      dataService.deleteVideo(vidInfo._id);
     });
   }
   applyVoteStyle(vidInfo._id, vidInfo.votes, vidInfo.status === 'done', state);
@@ -163,16 +161,14 @@ export function renderSingleVidReq(vidInfo, state, appended = false) {
     elm.addEventListener('click', function (e) {
       e.preventDefault();
       const [, vote_type, id] = e.target.getAttribute('id').split('_');
-      fetch('http://localhost:7777/video-request/vote', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, vote_type, user_id: state.userId }),
-      })
-        .then((blob) => blob.json())
-        .then((data) => {
-          scoreVoteElm.innerText = data.ups.length - data.downs.length;
-          applyVoteStyle(id, data, vidInfo.status === 'done', state, vote_type);
-        });
+
+      dataService.updateVotes(
+        id,
+        vote_type,
+        state.userId,
+        vidInfo.status === 'done',
+        state
+      );
     });
   });
 }
