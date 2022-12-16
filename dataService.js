@@ -8,7 +8,9 @@ export default {
     return api.videoReq.post(formData);
   },
   updateVideoStatus: (id, status, resVideo = '') => {
-    return api.videoReq.update(id, status, (resVideo = ''));
+    return api.videoReq
+      .update(id, status, (resVideo = ''))
+      .then((_) => window.location.reload());
   },
 
   deleteVideo: (id) => {
