@@ -173,6 +173,6 @@ export function renderSingleVidReq(
 
   bindAdminActions(id, title, state, videoRef, status);
 
-  applyVoteStyle(id, votes, status === 'done', state);
+  applyVoteStyle(id, votes, state.isSuperUser || status === 'done', state);
   bindVotesActions(id, status, state);
 }
